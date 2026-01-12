@@ -1,0 +1,26 @@
+# --- Dependencies ---
+node_modules/
+**/node_modules/
+package-lock.json  # (Optional: ถ้าไม่อยากเก็บ version lock, แต่ปกติแนะนำให้เก็บ)
+
+# --- Environment Variables (สำคัญมาก ห้ามหลุด) ---
+.env
+
+# --- OS Files (ไฟล์ขยะของระบบ) ---
+.DS_Store
+Thumbs.db
+
+# --- Logs ---
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# --- IDE Settings (การตั้งค่าส่วนตัวของโปรแกรมเขียนโค้ด) ---
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# --- Docker ---
+docker-compose.override.yml

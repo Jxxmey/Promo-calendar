@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Promotion Calendar</title>
+    <link rel="icon" type="image/png" href="logo.png">
+    
+    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js'></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --primary-color: #4F46E5;
+            --bg-color: #F3F4F6;
+            --card-radius: 16px;
+        }
+
+        body { 
+            background-color: var(--bg-color); 
+            font-family: 'Sarabun', sans-serif; 
+            padding-bottom: 80px;
+        }
+
+        /* --- UI Components --- */
+        .app-header {
+            background: white;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            padding: 15px 0;
+            border-bottom-left-radius: 20px;
+            border-bottom-right-radius: 20px;
+        }
+
+        .custom-card {
+            background: white;
+            border: none;
+            border-radius: var(--card-radius);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.03);
+            overflow: hidden;
+        }
+
+        /* --- Highlights --- */
+        .highlight-scroll {
+            display: flex;
+            overflow-x: auto;
+            gap: 12px;
+            padding: 5px 2px 15px 2px;
+            scrollbar-width: none;
+        }
+        .highlight-scroll::-webkit-scrollbar { display: none; }
+
+        .highlight-item {
+            min-width: 220px;
+            color: white;
+            padding: 15px;
+            border-radius: 16px;
+            flex-shrink: 0;
+            cursor: pointer; /* ทำให้รู้ว่ากดได้ */
+            transition: transform 0.2s, box-shadow 0.2s;
+            position: relative;
+            overflow: hidden;
+        }
+        .highlight-item:active { transform: scale(0.96); }
+        .highlight-item:hover { box-shadow: 0 8px 20px rgba(0,0,0,0.15); }
+
+        /* --- Calendar Fixes --- */
+        .fc-toolbar-title { font-size: 1.2rem !important; font-weight: 700; }
+        .fc-button { border-radius: 8px !important; text-transform: capitalize; }
+        .fc-day-today { background-color: #eff6ff !important; }
+        .fc-event {
+            border: none;
+            border-radius: 6px;
+            padding: 3px 6px;
+            font-size: 0.85rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            cursor: pointer;
+        }
+        /* ซ่อนจุดเวลาหน้าชื่อ Event */
+        .fc-daygrid-event-dot { display: none; }
+
+        /* --- Images & Zoom --- */
+        .detail-img-thumb {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            border-radius: 12px;
+            cursor: zoom-in;
+            background-color: #f0f0f0;
+            transition: opacity 0.2s;
+        }
+        .detail-img-thumb:hover { opacity: 0.9; }
+
+        /* Fullscreen Image Modal */
+        #fullImageModal .modal-dialog {
+            max-width: 100%;
+            margin: 0;
+            height: 100%;
+        }
+        #fullImageModal .modal-content {
+            height: 100%;
+            background: black;
+            border: none;
+            border-radius: 0;
+        }
+        #fullImg {
+            max-height: 90vh;
+            width: 100%;
+            object-fit: contain;
+            transition: transform 0.3s ease;
+            cursor: zoom-in;
+        }
+        .zoomed-in {
+            transform: scale(2); /* ซูม 2 เท่า */
+            cursor: zoom-out !important;
+        }
+
+        /* FAB Button */
+        .fab-btn {
+            position: fixed;
+            bottom: 25px;
+            right: 25px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background-color: var(--primary-color);
+            color: white;
+            box-shadow: 0 10px 25px rgba(79, 70, 229, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            border: none;
+            z-index: 1050;
+        }
+    </style>
+</head>
+<body>
+
+<header class="app-header">
+    <div class="container d-flex justify-content-between align-items-center">
+        <div class="d-flex align-items-center">
+            <img src="logo.png" class="me-3 rounded-circle" style="width: 50px; height: 50px; object-fit: cover;">
+            <div>
+                <div class="fw-bold text-dark" style="font-size: 1.1rem;">Promo Calendar</div>
+                <small class="text-muted" style="font-size: 0.8rem;">ปฏิทินโปรโมชั่น</small>
+            </div>
+        </div>
+        <a href="admin.html" class="btn btn-light btn-sm rounded-pill px-3 shadow-sm border">
+            <i class="bi bi-shield-lock me-1"></i> Admin
+        </a>
+    </div>
+</header>
+
+<div class="container mt-4">
+    
+    <div class="d-flex justify-content-between align-items-end mb-2 px-1">
+        <div>
+            <span class="fs-5">🔥</span> 
+            <span class="fw-bold text-secondary">โปรโมชั่นวันนี้😊</span>
+        </div>
+        <small class="text-primary fw-bold" id="today-count">0 รายการ</small>
+    </div>
+    
+    <div class="highlight-scroll mb-4" id="today-list">
+        <div class="highlight-item bg-light text-muted border text-center pt-4" style="min-width: 100%;">
+            กำลังโหลดข้อมูล...
+        </div>
+    </div>
+
+    <div class="custom-card p-2 p-md-4">
+        <div id='calendar'></div>
+    </div>
+
+</div>
+
+<button class="fab-btn" data-bs-toggle="modal" data-bs-target="#submitModal">
+    <i class="bi bi-plus-lg"></i>
+</button>
+
+<div class="modal fade" id="submitModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-bottom">
+        <div class="modal-content rounded-top-4 border-0">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold">✨ เสนอโปรโมชั่นใหม่</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body pb-4">
+                <form id="promoForm">
+                    <div class="mb-3">
+                        <label class="form-label text-muted small">ชื่อโปรโมชั่น</label>
+                        <input type="text" class="form-control bg-light border-0" id="pTitle" placeholder="เช่น ลดราคา iPad..." required>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <label class="form-label text-muted small">เริ่ม</label>
+                            <input type="date" class="form-control bg-light border-0" id="pStart" required>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label text-muted small">สิ้นสุด</label>
+                            <input type="date" class="form-control bg-light border-0" id="pEnd" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-muted small">รายละเอียด</label>
+                        <textarea class="form-control bg-light border-0" id="pDesc" rows="2"></textarea>
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label text-muted small">รูปภาพ</label>
+                        <input type="file" class="form-control" id="pImage" accept="image/*">
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100 py-3 rounded-pill fw-bold shadow">🚀 ส่งอนุมัติ</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="viewModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow-lg overflow-hidden">
+            <div id="imgContainer" class="position-relative bg-light text-center" style="display:none;">
+                <img id="vImg" src="" class="detail-img-thumb" onclick="openFullImage()">
+                <div class="position-absolute bottom-0 end-0 m-2">
+                    <span class="badge bg-dark bg-opacity-50 rounded-pill"><i class="bi bi-zoom-in"></i> แตะเพื่อขยาย</span>
+                </div>
+            </div>
+
+            <div class="modal-body p-4">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <span id="vBadge" class="badge rounded-pill px-3 py-2">Promotion</span>
+                    <button type="button" class="btn-close bg-light rounded-circle p-2" data-bs-dismiss="modal"></button>
+                </div>
+                
+                <h4 id="vTitle" class="fw-bold mb-3 text-dark"></h4>
+                
+                <div class="bg-light rounded-3 p-3 mb-3">
+                    <p id="vDesc" class="text-secondary mb-0" style="white-space: pre-line;"></p>
+                </div>
+
+                <div class="d-flex align-items-center text-muted small border-top pt-3">
+                    <i class="bi bi-calendar-range me-2 fs-5 text-primary"></i>
+                    <div>
+                        <div>ระยะเวลาโปรโมชั่น</div>
+                        <strong class="text-dark" id="vDate"></strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="fullImageModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content position-relative">
+            <button type="button" class="btn btn-dark position-absolute top-0 end-0 m-4 rounded-circle z-3" 
+                    style="width: 40px; height: 40px;" data-bs-dismiss="modal">
+                <i class="bi bi-x-lg"></i>
+            </button>
+            
+            <div class="modal-body p-0 d-flex align-items-center justify-content-center h-100 overflow-hidden">
+                <img id="fullImg" src="" onclick="toggleZoom(this)">
+            </div>
+            
+            <div class="position-absolute bottom-0 w-100 text-center text-white pb-4 pointer-events-none">
+                <small class="bg-black bg-opacity-50 px-3 py-1 rounded-pill">แตะที่รูปเพื่อซูม</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    // Global Variable เก็บข้อมูลโปรโมชั่นทั้งหมด เพื่อให้ Highlights เรียกใช้ได้
+    let globalPromotions = [];
+
+    // --- Color Generator ---
+    function stringToColor(str) {
+        let hash = 0;
+        for (let i = 0; i < str.length; i++) hash = str.charCodeAt(i) + ((hash << 5) - hash);
+        const colors = [
+            '#ef4444', '#f97316', '#f59e0b', '#84cc16', '#10b981', 
+            '#06b6d4', '#3b82f6', '#6366f1', '#8b5cf6', '#d946ef', '#f43f5e'
+        ];
+        return colors[Math.abs(hash % colors.length)];
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        // 1. Setup Calendar
+        var calendarEl = document.getElementById('calendar');
+        var calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: window.innerWidth < 768 ? 'listWeek' : 'dayGridMonth',
+            headerToolbar: {
+                left: 'prev,next',
+                center: 'title',
+                right: 'dayGridMonth,listWeek'
+            },
+            height: 'auto',
+            events: '/api/promotions',
+            displayEventTime: false, // ✅ เอา "7a" ออกตรงนี้ครับ!
+
+            // Color Logic
+            eventDidMount: function(info) {
+                const color = stringToColor(info.event.title);
+                info.el.style.backgroundColor = color;
+                info.el.style.borderColor = color;
+                info.el.style.color = '#fff';
+            },
+
+            // Click Event (เปิด Modal)
+            eventClick: function(info) {
+                const props = info.event.extendedProps;
+                const data = {
+                    title: info.event.title,
+                    description: props.description,
+                    start: info.event.start,
+                    end: info.event.end,
+                    imageUrl: props.imageUrl
+                };
+                openDetailModal(data); // เรียกใช้ฟังก์ชันกลาง
+            }
+        });
+        calendar.render();
+
+        // 2. Fetch Data & Build Highlights
+        fetch('/api/promotions')
+            .then(res => res.json())
+            .then(data => {
+                globalPromotions = data; // เก็บเข้าตัวแปรกลาง
+                updateHighlights(data);
+            });
+
+        // 3. Handle Submit
+        document.getElementById('promoForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const btn = this.querySelector('button[type="submit"]');
+            btn.innerHTML = '⏳ กำลังส่ง...'; btn.disabled = true;
+
+            const formData = new FormData();
+            formData.append('title', document.getElementById('pTitle').value);
+            formData.append('description', document.getElementById('pDesc').value);
+            formData.append('start', document.getElementById('pStart').value);
+            formData.append('end', document.getElementById('pEnd').value);
+            const fileInput = document.getElementById('pImage');
+            if (fileInput.files[0]) formData.append('image', fileInput.files[0]);
+
+            fetch('/api/promotions', { method: 'POST', body: formData })
+            .then(res => {
+                if(res.ok) {
+                    if(confirm('✅ ส่งข้อมูลเรียบร้อย! รอแอดมินอนุมัติ')) location.reload();
+                } else alert('Error');
+                btn.innerHTML = '🚀 ส่งอนุมัติ'; btn.disabled = false;
+            });
+        });
+    });
+
+    // --- Helper Functions ---
+
+    // ฟังก์ชันสร้าง Highlight Bar
+    function updateHighlights(data) {
+        const today = new Date().setHours(0,0,0,0);
+        const todayPromos = data.filter(p => {
+            const start = new Date(p.start).setHours(0,0,0,0);
+            const end = new Date(p.end).setHours(0,0,0,0);
+            return today >= start && today <= end;
+        });
+        
+        document.getElementById('today-count').innerText = `${todayPromos.length} รายการ`;
+        const listEl = document.getElementById('today-list');
+
+        if(todayPromos.length > 0) {
+            listEl.innerHTML = todayPromos.map(p => `
+                <div class="highlight-item shadow-sm" 
+                     style="background: linear-gradient(135deg, ${stringToColor(p.title)}dd, ${stringToColor(p.title)});"
+                     onclick="handleClickHighlight('${p._id}')"> <div class="d-flex justify-content-between mb-2">
+                        <span class="badge bg-white bg-opacity-25 rounded-pill">Today</span>
+                        <i class="bi bi-chevron-right bg-white bg-opacity-20 rounded-circle p-1" style="font-size:0.7em"></i>
+                    </div>
+                    <div class="fw-bold text-truncate fs-5 mb-1">${p.title}</div>
+                    <small class="opacity-75 d-block text-truncate">${p.description || 'ดูรายละเอียดเพิ่มเติม...'}</small>
+                </div>
+            `).join('');
+        } else {
+            listEl.innerHTML = `<div class="text-muted w-100 text-center py-4 bg-white rounded-4 border border-dashed small">วันนี้ไม่มีโปรโมชั่น</div>`;
+        }
+    }
+
+    // ✅ ฟังก์ชันเมื่อกดที่ "โปรวันนี้" (Highlight)
+    function handleClickHighlight(id) {
+        // ค้นหาข้อมูลจาก Global Variable
+        const p = globalPromotions.find(x => x._id === id);
+        if(p) {
+            const data = {
+                title: p.title,
+                description: p.description,
+                start: new Date(p.start),
+                end: new Date(p.end),
+                imageUrl: p.imageUrl
+            };
+            openDetailModal(data);
+        }
+    }
+
+    // ✅ ฟังก์ชันเปิด Modal รายละเอียด (ใช้ร่วมกันทั้งปฏิทินและ Highlight)
+    function openDetailModal(data) {
+        document.getElementById('vTitle').innerText = data.title;
+        document.getElementById('vDesc').innerText = data.description || 'ไม่มีรายละเอียดเพิ่มเติม';
+        
+        // Color & Badge
+        const color = stringToColor(data.title);
+        const badge = document.getElementById('vBadge');
+        badge.style.backgroundColor = color;
+        badge.style.color = '#fff';
+
+        // Date Format
+        const start = data.start.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit'});
+        const end = data.end ? data.end.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit'}) : '';
+        document.getElementById('vDate').innerText = `${start} - ${end}`;
+
+        // Image Handling
+        const imgContainer = document.getElementById('imgContainer');
+        const imgEl = document.getElementById('vImg');
+        const fullImgEl = document.getElementById('fullImg');
+
+        if (data.imageUrl) {
+            imgEl.src = data.imageUrl;
+            fullImgEl.src = data.imageUrl; // เตรียมรูปสำหรับ Full Screen
+            imgContainer.style.display = 'block';
+        } else {
+            imgContainer.style.display = 'none';
+        }
+
+        new bootstrap.Modal(document.getElementById('viewModal')).show();
+    }
+
+    // ✅ ฟังก์ชันเปิดรูปเต็มจอ
+    function openFullImage() {
+        // ปิด Modal เล็กก่อน (Optional: หรือจะเปิดซ้อนก็ได้ แต่ปิดจะดู Clean กว่า)
+        // bootstrap.Modal.getInstance(document.getElementById('viewModal')).hide();
+        
+        // Reset Zoom
+        document.getElementById('fullImg').classList.remove('zoomed-in');
+        
+        // เปิด Modal ใหญ่
+        new bootstrap.Modal(document.getElementById('fullImageModal')).show();
+    }
+
+    // ✅ ฟังก์ชันซูมรูป (Toggle Class)
+    function toggleZoom(img) {
+        img.classList.toggle('zoomed-in');
+    }
+</script>
+</body>
+</html>

@@ -1,0 +1,56 @@
+version: '3.8'
+
+services:
+  # --- Backend API ---
+  backend:
+    build: ./backend
+    container_name: promo_backend
+    restart: always
+    env_file: .env
+    ports:
+      - "3000:3000"
+    depends_on:
+      - mongo
+      - redis
+    networks:
+      - promo-net
+
+  # --- Database ---
+  mongo:
+    image: mongo:6.0
+    container_name: promo_mongo
+    restart: always
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - promo-net
+
+  # --- Cache ---
+  redis:
+    image: redis:alpine
+    container_name: promo_redis
+    restart: always
+    networks:
+      - promo-net
+
+  # --- Frontend / Reverse Proxy ---
+  nginx:
+    image: nginx:alpine
+    container_name: promo_nginx
+    restart: always
+    ports:
+      - "8080:80"
+    volumes:
+      - ./frontend:/usr/share/nginx/html  # Serve static files
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - backend
+    networks:
+      - promo-net
+
+volumes:
+  mongo_data:
+
+networks:
+  promo-net:
+    driver: bridge

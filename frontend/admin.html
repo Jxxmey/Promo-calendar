@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Admin Dashboard</title>
+    <link rel="icon" type="image/png" href="logo.png">
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --primary-color: #4F46E5;
+            --bg-color: #F3F4F6;
+            --card-radius: 16px;
+        }
+
+        body { 
+            background-color: var(--bg-color); 
+            font-family: 'Sarabun', sans-serif;
+            padding-bottom: 80px; 
+        }
+
+        /* --- Login Screen --- */
+        .login-wrapper {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+        }
+        .login-card {
+            background: white;
+            border-radius: 24px;
+            padding: 2rem;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+
+        /* --- Dashboard Header --- */
+        .app-header {
+            background: white;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            padding: 15px 0;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            border-bottom-left-radius: 20px;
+            border-bottom-right-radius: 20px;
+        }
+
+        /* --- Stat Cards --- */
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 15px;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            flex: 1;
+        }
+        .stat-num { font-size: 1.5rem; font-weight: 700; color: var(--primary-color); }
+        .stat-label { font-size: 0.8rem; color: #6b7280; }
+
+        /* --- Promo Item Card --- */
+        .promo-card {
+            background: white;
+            border-radius: 16px;
+            overflow: hidden;
+            margin-bottom: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            transition: transform 0.2s;
+            position: relative;
+        }
+        .promo-card:active { transform: scale(0.98); }
+        
+        .color-strip {
+            width: 6px;
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+        }
+
+        .promo-img {
+            width: 80px;
+            height: 80px;
+            object-fit: cover;
+            border-radius: 12px;
+            background-color: #f3f4f6;
+        }
+
+        /* --- FAB Button --- */
+        .fab-btn {
+            position: fixed;
+            bottom: 25px;
+            right: 25px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background-color: #10b981; /* Green for Add */
+            color: white;
+            box-shadow: 0 10px 25px rgba(16, 185, 129, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            border: none;
+            z-index: 1050;
+        }
+
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+<div id="login-section" class="login-wrapper">
+    <div class="login-card">
+        <div class="text-center mb-4">
+            <h1 class="fs-1">🛡️</h1>
+            <h3 class="fw-bold text-gray-800">Admin Panel</h3>
+            <p class="text-muted small">ระบบจัดการปฏิทินโปรโมชั่น</p>
+        </div>
+        <form id="loginForm">
+            <div class="mb-3">
+                <input type="password" id="adminPass" class="form-control form-control-lg bg-light border-0" placeholder="Password" required>
+            </div>
+            <button type="submit" class="btn btn-primary w-100 py-3 rounded-pill fw-bold shadow">เข้าสู่ระบบ</button>
+        </form>
+    </div>
+</div>
+
+<div id="dashboard-section" class="hidden">
+    
+    <header class="app-header mb-3">
+        <div class="container d-flex justify-content-between align-items-center">
+            <h5 class="m-0 fw-bold">Admin Dashboard</h5>
+            <div>
+                <a href="index.html" class="btn btn-light btn-sm rounded-pill text-muted me-1"><i class="bi bi-eye"></i> View App</a>
+                <button onclick="logout()" class="btn btn-danger btn-sm rounded-pill"><i class="bi bi-box-arrow-right"></i></button>
+            </div>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="d-flex gap-2 mb-4">
+            <div class="stat-card">
+                <div class="stat-num text-warning" id="stat-pending">0</div>
+                <div class="stat-label">รออนุมัติ</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-num text-success" id="stat-approved">0</div>
+                <div class="stat-label">อนุมัติแล้ว</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-num text-dark" id="stat-total">0</div>
+                <div class="stat-label">ทั้งหมด</div>
+            </div>
+        </div>
+
+        <h6 class="text-muted small fw-bold mb-3 ps-1">รายการโปรโมชั่นล่าสุด</h6>
+        <div id="promo-list">
+            <div class="text-center py-5 text-muted">กำลังโหลดข้อมูล...</div>
+        </div>
+    </div>
+
+    <button class="fab-btn" data-bs-toggle="modal" data-bs-target="#createModal">
+        <i class="bi bi-plus-lg"></i>
+    </button>
+</div>
+
+<div class="modal fade" id="createModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0">
+            <div class="modal-header border-0">
+                <h5 class="modal-title fw-bold">สร้างโปรโมชั่น (Admin)</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="createForm">
+                    <div class="mb-3"><label class="small text-muted">หัวข้อ</label><input type="text" class="form-control bg-light border-0" name="title" required></div>
+                    <div class="mb-3"><label class="small text-muted">รายละเอียด</label><textarea class="form-control bg-light border-0" name="description" rows="2"></textarea></div>
+                    <div class="row mb-3">
+                        <div class="col"><label class="small text-muted">เริ่ม</label><input type="date" class="form-control bg-light border-0" name="start" required></div>
+                        <div class="col"><label class="small text-muted">จบ</label><input type="date" class="form-control bg-light border-0" name="end" required></div>
+                    </div>
+                    <div class="mb-4"><label class="small text-muted">รูปภาพ</label><input type="file" class="form-control" name="image" accept="image/*"></div>
+                    <button type="submit" class="btn btn-success w-100 rounded-pill py-2 shadow-sm">บันทึกและอนุมัติทันที</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="editModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0">
+            <div class="modal-header border-0">
+                <h5 class="modal-title fw-bold">✏️ แก้ไขข้อมูล</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editForm">
+                    <input type="hidden" id="editId">
+                    <div class="mb-3"><label class="small text-muted">หัวข้อ</label><input type="text" class="form-control bg-light border-0" id="editTitle" required></div>
+                    <div class="mb-3"><label class="small text-muted">รายละเอียด</label><textarea class="form-control bg-light border-0" id="editDesc" rows="2"></textarea></div>
+                    <div class="row mb-3">
+                        <div class="col"><label class="small text-muted">เริ่ม</label><input type="date" class="form-control bg-light border-0" id="editStart" required></div>
+                        <div class="col"><label class="small text-muted">จบ</label><input type="date" class="form-control bg-light border-0" id="editEnd" required></div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="small text-muted">รูปภาพใหม่ (เว้นว่างถ้าไม่เปลี่ยน)</label>
+                        <input type="file" class="form-control" id="editImage" accept="image/*">
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100 rounded-pill py-2 shadow-sm">บันทึกการเปลี่ยนแปลง</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="imgModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-transparent border-0">
+            <div class="modal-body p-0 text-center position-relative">
+                <button type="button" class="btn-close position-absolute top-0 end-0 m-2 bg-white p-2 rounded-circle" data-bs-dismiss="modal"></button>
+                <img id="previewImg" src="" class="img-fluid rounded-3 shadow" style="max-height: 80vh;">
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    const API_URL = '/api';
+    let allPromos = [];
+
+    // --- Color Logic (Same as Frontend) ---
+    function stringToColor(str) {
+        let hash = 0;
+        for (let i = 0; i < str.length; i++) hash = str.charCodeAt(i) + ((hash << 5) - hash);
+        const colors = ['#ef4444', '#f97316', '#f59e0b', '#84cc16', '#10b981', '#06b6d4', '#3b82f6', '#6366f1', '#8b5cf6', '#d946ef', '#f43f5e'];
+        return colors[Math.abs(hash % colors.length)];
+    }
+
+    // --- Auth Check ---
+    document.addEventListener('DOMContentLoaded', () => {
+        if (localStorage.getItem('adminToken')) showDashboard();
+    });
+
+    // --- Login ---
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const password = document.getElementById('adminPass').value;
+        try {
+            const res = await fetch(`${API_URL}/admin/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ password })
+            });
+            if (!res.ok) throw new Error('Password ผิดครับ');
+            const data = await res.json();
+            localStorage.setItem('adminToken', data.token);
+            showDashboard();
+        } catch (err) { alert(err.message); }
+    });
+
+    function showDashboard() {
+        document.getElementById('login-section').classList.add('hidden');
+        document.getElementById('dashboard-section').classList.remove('hidden');
+        loadPromotions();
+    }
+
+    // --- Main Logic ---
+    async function loadPromotions() {
+        const token = localStorage.getItem('adminToken');
+        const res = await fetch(`${API_URL}/admin/promotions`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (res.status === 401 || res.status === 403) return logout();
+        allPromos = await res.json();
+        
+        // Update Stats
+        document.getElementById('stat-total').innerText = allPromos.length;
+        document.getElementById('stat-pending').innerText = allPromos.filter(p => p.status === 'PENDING').length;
+        document.getElementById('stat-approved').innerText = allPromos.filter(p => p.status === 'APPROVED').length;
+
+        renderList(allPromos);
+    }
+
+    function renderList(data) {
+        const container = document.getElementById('promo-list');
+        if(data.length === 0) {
+            container.innerHTML = '<div class="text-center text-muted py-5">ยังไม่มีข้อมูล</div>';
+            return;
+        }
+
+        container.innerHTML = data.map(p => `
+            <div class="promo-card d-flex p-3">
+                <div class="color-strip" style="background-color: ${stringToColor(p.title)}"></div>
+                
+                <div class="me-3">
+                    ${p.imageUrl 
+                        ? `<img src="${p.imageUrl}" class="promo-img" onclick="viewImage('${p.imageUrl}')">`
+                        : `<div class="promo-img d-flex align-items-center justify-content-center text-muted bg-light"><i class="bi bi-image fs-4"></i></div>`
+                    }
+                </div>
+
+                <div class="flex-grow-1" style="min-width: 0;">
+                    <div class="d-flex justify-content-between align-items-start mb-1">
+                        <h6 class="fw-bold mb-0 text-truncate pe-2">${p.title}</h6>
+                        ${getStatusBadge(p.status)}
+                    </div>
+                    <p class="text-muted small text-truncate mb-2">${p.description || '-'}</p>
+                    <div class="d-flex align-items-center justify-content-between">
+                        <small class="text-secondary" style="font-size: 0.75rem">
+                            <i class="bi bi-calendar"></i> ${new Date(p.start).toLocaleDateString('th-TH')} - ${new Date(p.end).toLocaleDateString('th-TH')}
+                        </small>
+                    </div>
+                    
+                    <div class="mt-2 d-flex gap-2">
+                        ${p.status === 'PENDING' ? `
+                        <button class="btn btn-sm btn-outline-success flex-grow-1" onclick="setStatus('${p._id}', 'APPROVED')">✔ อนุมัติ</button>
+                        <button class="btn btn-sm btn-outline-danger" onclick="setStatus('${p._id}', 'REJECTED')">✖</button>
+                        ` : ''}
+                        <button class="btn btn-sm btn-light border" onclick="openEdit('${p._id}')"><i class="bi bi-pencil"></i></button>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function getStatusBadge(status) {
+        if(status === 'APPROVED') return '<span class="badge bg-success bg-opacity-10 text-success rounded-pill px-2">อนุมัติ</span>';
+        if(status === 'REJECTED') return '<span class="badge bg-danger bg-opacity-10 text-danger rounded-pill px-2">ปฏิเสธ</span>';
+        return '<span class="badge bg-warning bg-opacity-10 text-warning rounded-pill px-2">รอตรวจ</span>';
+    }
+
+    // --- Actions ---
+    
+    // Create
+    document.getElementById('createForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const btn = e.target.querySelector('button');
+        btn.innerHTML = '⏳ กำลังบันทึก...'; btn.disabled = true;
+
+        const formData = new FormData(e.target);
+        await fetch(`${API_URL}/admin/promotions`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('adminToken')}` },
+            body: formData
+        });
+        
+        btn.innerHTML = 'บันทึกและอนุมัติทันที'; btn.disabled = false;
+        bootstrap.Modal.getInstance(document.getElementById('createModal')).hide();
+        e.target.reset();
+        loadPromotions();
+    });
+
+    // Edit (Pre-fill & Submit)
+    function openEdit(id) {
+        const p = allPromos.find(x => x._id === id);
+        if(!p) return;
+        document.getElementById('editId').value = p._id;
+        document.getElementById('editTitle').value = p.title;
+        document.getElementById('editDesc').value = p.description || '';
+        document.getElementById('editStart').value = p.start.split('T')[0];
+        document.getElementById('editEnd').value = p.end.split('T')[0];
+        document.getElementById('editImage').value = ''; 
+        new bootstrap.Modal(document.getElementById('editModal')).show();
+    }
+
+    document.getElementById('editForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const id = document.getElementById('editId').value;
+        const formData = new FormData();
+        formData.append('title', document.getElementById('editTitle').value);
+        formData.append('description', document.getElementById('editDesc').value);
+        formData.append('start', document.getElementById('editStart').value);
+        formData.append('end', document.getElementById('editEnd').value);
+        const fileInput = document.getElementById('editImage');
+        if (fileInput.files[0]) formData.append('image', fileInput.files[0]);
+
+        await fetch(`${API_URL}/admin/promotions/${id}/edit`, {
+            method: 'PUT',
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('adminToken')}` },
+            body: formData
+        });
+        bootstrap.Modal.getInstance(document.getElementById('editModal')).hide();
+        loadPromotions();
+    });
+
+    // Approve/Reject
+    async function setStatus(id, status) {
+        if(!confirm(`ยืนยันเปลี่ยนสถานะเป็น ${status}?`)) return;
+        await fetch(`${API_URL}/admin/promotions/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('adminToken')}` },
+            body: JSON.stringify({ status })
+        });
+        loadPromotions();
+    }
+
+    // Utilities
+    function viewImage(url) {
+        document.getElementById('previewImg').src = url;
+        new bootstrap.Modal(document.getElementById('imgModal')).show();
+    }
+    function logout() {
+        localStorage.removeItem('adminToken');
+        location.reload();
+    }
+</script>
+</body>
+</html>
