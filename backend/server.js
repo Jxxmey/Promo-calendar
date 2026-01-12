@@ -16,7 +16,7 @@ app.use(express.json());
 app.use(cors());
 app.use(helmet());
 
-app.use(express.static('public'));
+app.use(express.static(path.join(__dirname, 'frontend')));
 // --- Database Connection ---
 mongoose.connect(process.env.MONGO_URI || 'mongodb://mongo:27017/promo_db')
   .then(() => console.log('✅ MongoDB Connected'))
