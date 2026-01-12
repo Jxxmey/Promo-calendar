@@ -16,21 +16,24 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
-// ✅ 1. แก้ไข Helmet (อนุญาตให้โหลด Script/CSS จากภายนอกได้)
+// ✅ แก้ไข Helmet (ปลดล็อคทุกอย่างที่ติด Error)
 app.use(helmet({
+  crossOriginResourcePolicy: false, // อนุญาตให้โหลด Resource ข้าม Domain ได้ (แก้ปัญหาโหลดรูปไม่ได้)
+  crossOriginEmbedderPolicy: false, // ปิด COEP เพื่อให้โหลดรูปจาก i.ibb.co ได้โดยไม่ติด Block
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "cdn.jsdelivr.net"], // อนุญาต CDN
-      styleSrc: ["'self'", "'unsafe-inline'", "cdn.jsdelivr.net", "fonts.googleapis.com"], // อนุญาต Font
-      imgSrc: ["'self'", "data:", "i.ibb.co"], // อนุญาตรูปจาก ImgBB
-      fontSrc: ["'self'", "fonts.gstatic.com", "cdn.jsdelivr.net"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "cdn.jsdelivr.net"], 
+      scriptSrcAttr: ["'unsafe-inline'"], // ✅ อนุญาตให้ใช้ onclick="..." ใน HTML ได้
+      styleSrc: ["'self'", "'unsafe-inline'", "cdn.jsdelivr.net", "fonts.googleapis.com"], 
+      imgSrc: ["'self'", "data:", "i.ibb.co", "https://i.ibb.co"], // ✅ ระบุ i.ibb.co ให้ชัดเจน
+      fontSrc: ["'self'", "data:", "fonts.gstatic.com", "cdn.jsdelivr.net"], // ✅ อนุญาต font แบบ data:
       connectSrc: ["'self'", "cdn.jsdelivr.net"], 
     },
   },
 }));
 
-// ✅ 2. เปิดให้เข้าถึงหน้าเว็บ (Frontend)
+// เปิดให้เข้าถึงหน้าเว็บ (Frontend)
 app.use(express.static(path.join(__dirname, 'frontend')));
 
 // --- Database Connection ---
@@ -38,21 +41,13 @@ mongoose.connect(process.env.MONGO_URI || 'mongodb://mongo:27017/promo_db')
   .then(() => console.log('✅ MongoDB Connected'))
   .catch(err => console.error('❌ MongoDB Error:', err));
 
-// --- Redis Connection (แบบปลอดภัย) ---
-// ✅ 3. แก้ไข Redis: ถ้าต่อไม่ได้ (บน Render) ให้ข้ามไป ไม่ต้องให้แอปพัง
+// --- Redis Connection ---
 const redisClient = redis.createClient({ 
   url: process.env.REDIS_URL || 'redis://redis:6379',
-  socket: {
-    reconnectStrategy: false // ไม่ต้องพยายามต่อใหม่ถ้าระบบไม่มี Redis
-  }
+  socket: { reconnectStrategy: false }
 });
-
-// ดักจับ Error ไม่ให้แอป Crash
 redisClient.on('error', (err) => console.log('⚠️ Redis Error (Cache disabled)'));
-
-// พยายามเชื่อมต่อ
 redisClient.connect().catch(err => console.log('⚠️ Redis Connect Failed:', err.message));
-
 
 // --- Multer Setup ---
 const upload = multer({ storage: multer.memoryStorage() });
@@ -90,8 +85,6 @@ const authenticateAdmin = (req, res, next) => {
 app.get('/api/promotions', async (req, res) => {
   try {
     const cacheKey = 'promotions:approved';
-    
-    // ✅ เช็คก่อนว่า Redis พร้อมไหม ค่อยดึง Cache
     if (redisClient.isOpen) {
        const cachedData = await redisClient.get(cacheKey);
        if (cachedData) return res.json(JSON.parse(cachedData));
@@ -105,7 +98,6 @@ app.get('/api/promotions', async (req, res) => {
       end: { $gte: today }
     });
 
-    // ✅ เช็คก่อนว่า Redis พร้อมไหม ค่อยเก็บ Cache
     if (redisClient.isOpen) {
       await redisClient.setEx(cacheKey, 300, JSON.stringify(promotions));
     }
