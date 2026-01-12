@@ -18,7 +18,7 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
-// ✅ Config Helmet: ปลดล็อค CSP ให้โหลดรูป, สคริปต์ และแสดงผลได้ถูกต้อง
+// Config Helmet
 app.use(helmet({
   crossOriginResourcePolicy: false,
   crossOriginEmbedderPolicy: false,
@@ -35,15 +35,14 @@ app.use(helmet({
   },
 }));
 
-// Serve Frontend Files
 app.use(express.static(path.join(__dirname, 'frontend')));
 
-// --- Database Connection ---
+// Database Connection
 mongoose.connect(process.env.MONGO_URI || 'mongodb://mongo:27017/promo_db')
   .then(() => console.log('✅ MongoDB Connected'))
   .catch(err => console.error('❌ MongoDB Error:', err));
 
-// --- Redis Connection (Cache) ---
+// Redis Connection
 const redisClient = redis.createClient({ 
   url: process.env.REDIS_URL || 'redis://redis:6379',
   socket: { reconnectStrategy: false }
@@ -51,7 +50,7 @@ const redisClient = redis.createClient({
 redisClient.on('error', (err) => console.log('⚠️ Redis Error (Cache disabled)'));
 redisClient.connect().catch(err => console.log('⚠️ Redis Connect Failed:', err.message));
 
-// --- Helper: Upload Image to ImgBB ---
+// Upload Helper
 const upload = multer({ storage: multer.memoryStorage() });
 
 const uploadToImgBB = async (buffer) => {
@@ -68,7 +67,7 @@ const uploadToImgBB = async (buffer) => {
   }
 };
 
-// --- Middleware: Admin Check ---
+// Middleware: Admin Check
 const authenticateAdmin = (req, res, next) => {
   const token = req.headers['authorization']?.split(' ')[1];
   if (!token) return res.status(401).json({ error: 'Unauthorized' });
@@ -82,218 +81,136 @@ const authenticateAdmin = (req, res, next) => {
 
 // ================= API ROUTES =================
 
-// ---------------- PROMOTIONS ----------------
+// --- PROMOTIONS ---
 
-// 1. Get Active Promotions (Public)
+// Get Active Promotions
 app.get('/api/promotions', async (req, res) => {
   try {
-    const cacheKey = 'promotions:active';
-    
-    // Try Cache
-    if (redisClient.isOpen) {
-       const cachedData = await redisClient.get(cacheKey);
-       if (cachedData) return res.json(JSON.parse(cachedData));
-    }
-
     const today = new Date();
     today.setHours(0,0,0,0);
-    
-    // ดึงโปรโมชั่นที่ อนุมัติแล้ว และ ยังไม่หมดอายุ
-    const promotions = await Promotion.find({
-      status: 'APPROVED',
-      end: { $gte: today }
-    });
-
-    // Save Cache (5 mins)
-    if (redisClient.isOpen) {
-      await redisClient.setEx(cacheKey, 300, JSON.stringify(promotions));
-    }
-    
+    const promotions = await Promotion.find({ status: 'APPROVED', end: { $gte: today } });
     res.json(promotions);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// 2. Submit Promotion (User)
+// Submit Promotion
 app.post('/api/promotions', upload.single('image'), async (req, res) => {
   try {
     let imageUrl = '';
     if (req.file) imageUrl = await uploadToImgBB(req.file.buffer);
-
-    const newPromo = new Promotion({
-      title: req.body.title,
-      description: req.body.description,
-      start: req.body.start,
-      end: req.body.end,
-      imageUrl
-    });
-
+    const newPromo = new Promotion({ ...req.body, imageUrl });
     await newPromo.save();
     res.status(201).json({ message: 'Submission Received' });
-  } catch (err) {
-    res.status(400).json({ error: err.message });
-  }
+  } catch (err) { res.status(400).json({ error: err.message }); }
 });
 
-// ---------------- ADMIN: PROMOTIONS ----------------
+// --- ADMIN: PROMOTIONS ---
 
-// 3. Admin Login
 app.post('/api/admin/login', (req, res) => {
-  const { password } = req.body;
-  if (password === process.env.ADMIN_PASSWORD) {
+  if (req.body.password === process.env.ADMIN_PASSWORD) {
     const token = jwt.sign({ role: 'ADMIN' }, process.env.JWT_SECRET, { expiresIn: '1h' });
     return res.json({ token });
   }
   res.status(401).json({ error: 'Invalid Password' });
 });
 
-// 4. Get All Promotions (Admin)
 app.get('/api/admin/promotions', authenticateAdmin, async (req, res) => {
   const promos = await Promotion.find().sort({ createdAt: -1 });
   res.json(promos);
 });
 
-// 5. Create Promotion (Admin - Auto Approved)
+// Create Promotion
 app.post('/api/admin/promotions', authenticateAdmin, upload.single('image'), async (req, res) => {
   try {
     let imageUrl = '';
     if (req.file) imageUrl = await uploadToImgBB(req.file.buffer);
-
-    const newPromo = new Promotion({
-      title: req.body.title,
-      description: req.body.description,
-      start: req.body.start,
-      end: req.body.end,
-      imageUrl: imageUrl,
-      color: req.body.color || '#4F46E5', // รองรับสีที่ส่งมา
-      status: 'APPROVED'
-    });
-
+    const newPromo = new Promotion({ ...req.body, imageUrl, color: req.body.color || '#4F46E5', status: 'APPROVED' });
     await newPromo.save();
-    if (redisClient.isOpen) await redisClient.del('promotions:active'); // Clear Cache
     res.status(201).json({ message: 'Created successfully' });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// 6. Update Status (Approve/Reject)
-app.put('/api/admin/promotions/:id', authenticateAdmin, async (req, res) => {
-  try {
-    const { status } = req.body;
-    await Promotion.findByIdAndUpdate(req.params.id, { status });
-    
-    if (redisClient.isOpen) await redisClient.del('promotions:active');
-    res.json({ message: `Status updated` });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// 7. Edit Promotion Details
+// Edit Promotion (Fix: เพิ่ม Route นี้ให้ชัดเจน)
 app.put('/api/admin/promotions/:id/edit', authenticateAdmin, upload.single('image'), async (req, res) => {
   try {
-    const updateData = {
-      title: req.body.title,
-      description: req.body.description,
-      start: req.body.start,
-      end: req.body.end,
-      color: req.body.color
-    };
-
-    if (req.file) {
-      updateData.imageUrl = await uploadToImgBB(req.file.buffer);
-    }
-
+    const updateData = { ...req.body };
+    if (req.file) updateData.imageUrl = await uploadToImgBB(req.file.buffer);
     await Promotion.findByIdAndUpdate(req.params.id, updateData);
-    if (redisClient.isOpen) await redisClient.del('promotions:active');
-
     res.json({ message: 'Updated successfully' });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// 8. Delete Promotion
+// Update Status
+app.put('/api/admin/promotions/:id', authenticateAdmin, async (req, res) => {
+  try {
+    await Promotion.findByIdAndUpdate(req.params.id, { status: req.body.status });
+    res.json({ message: `Status updated` });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 app.delete('/api/admin/promotions/:id', authenticateAdmin, async (req, res) => {
   try {
     await Promotion.findByIdAndDelete(req.params.id);
-    if (redisClient.isOpen) await redisClient.del('promotions:active');
     res.json({ message: 'Deleted successfully' });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// ---------------- ANNOUNCEMENTS (NEW SYSTEM) ----------------
+// --- ANNOUNCEMENTS ---
 
-// 9. Get Active Announcements (Public)
+// Get Active (สำหรับหน้าเว็บ)
 app.get('/api/announcement', async (req, res) => {
   try {
     const today = new Date();
-    // today.setHours(0,0,0,0); // ใช้เวลาปัจจุบันเลยเพื่อความแม่นยำ
-
-    // ดึงประกาศที่: 
-    // 1. isActive = true
-    // 2. วันที่เริ่ม <= วันนี้ (เริ่มแล้ว)
-    // 3. วันที่จบ >= วันนี้ (ยังไม่จบ)
     const announcements = await Announcement.find({
       isActive: true,
       startDate: { $lte: today },
       endDate: { $gte: today.setHours(0,0,0,0) } 
     }).sort({ createdAt: -1 });
-
     res.json(announcements);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// 10. Get All Announcements (Admin)
+// Get All (สำหรับ Admin)
 app.get('/api/admin/announcements', authenticateAdmin, async (req, res) => {
   try {
     const announcements = await Announcement.find().sort({ createdAt: -1 });
     res.json(announcements);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// 11. Create Announcement (Admin)
+// Create Announcement
 app.post('/api/admin/announcements', authenticateAdmin, upload.single('image'), async (req, res) => {
   try {
     let imageUrl = '';
-    if (req.file) {
-      imageUrl = await uploadToImgBB(req.file.buffer);
-    }
-
-    const newAnn = new Announcement({
-      title: req.body.title,
-      description: req.body.description,
-      startDate: req.body.startDate,
-      endDate: req.body.endDate,
-      imageUrl,
-      isActive: true
-    });
-
+    if (req.file) imageUrl = await uploadToImgBB(req.file.buffer);
+    const newAnn = new Announcement({ ...req.body, imageUrl, isActive: true });
     await newAnn.save();
-    res.json({ message: 'Announcement created successfully' });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+    res.json({ message: 'Announcement created' });
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// 12. Delete Announcement (Admin)
+// Update Announcement (รวมถึงการ Toggle Active)
+app.put('/api/admin/announcements/:id', authenticateAdmin, upload.single('image'), async (req, res) => {
+  try {
+    const updateData = { ...req.body };
+    if (req.file) updateData.imageUrl = await uploadToImgBB(req.file.buffer);
+    
+    // แปลงค่า isActive ถ้าส่งมา (บางทีส่งมาเป็น string 'true'/'false')
+    if(updateData.isActive !== undefined) {
+        updateData.isActive = updateData.isActive === 'true' || updateData.isActive === true;
+    }
+
+    await Announcement.findByIdAndUpdate(req.params.id, updateData);
+    res.json({ message: 'Updated successfully' });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 app.delete('/api/admin/announcements/:id', authenticateAdmin, async (req, res) => {
   try {
     await Announcement.findByIdAndDelete(req.params.id);
     res.json({ message: 'Deleted successfully' });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// Start Server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));

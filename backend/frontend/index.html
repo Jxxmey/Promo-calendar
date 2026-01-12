@@ -19,35 +19,24 @@
         :root { --bg-color: #F9FAFB; --card-radius: 16px; }
         body { background-color: var(--bg-color); font-family: 'Sarabun', sans-serif; padding-bottom: 90px; color: #1F2937; }
         
-        /* Header */
         .app-header { background: white; padding: 12px 0; box-shadow: 0 1px 3px rgba(0,0,0,0.05); position: sticky; top: 0; z-index: 1000; }
         
-        /* Carousel Banner */
-        .banner-container { margin-bottom: 20px; border-radius: var(--card-radius); overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-        .carousel-item { height: 160px; background: #eee; position: relative; }
-        .carousel-img { width: 100%; height: 100%; object-fit: cover; }
-        .banner-text { 
-            position: absolute; bottom: 0; left: 0; right: 0; 
-            background: linear-gradient(to top, rgba(0,0,0,0.8), transparent); 
-            color: white; padding: 20px 15px 10px 15px; 
-        }
+        /* Banner Styles (รูปซ้าย ข้อความขวา) */
+        .banner-container { margin-bottom: 20px; border-radius: var(--card-radius); overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.1); background: white; }
+        .carousel-item-content { display: flex; height: 140px; cursor: pointer; }
+        .banner-img { width: 40%; height: 100%; object-fit: cover; background: #eee; }
+        .banner-info { width: 60%; padding: 15px; display: flex; flex-direction: column; justify-content: center; }
 
-        /* Promotion Card */
         .promo-card {
             background: white; border-radius: var(--card-radius); border: none;
             box-shadow: 0 2px 8px rgba(0,0,0,0.05); overflow: hidden; height: 100%;
             transition: transform 0.2s; cursor: pointer;
-            border-top: 5px solid #ccc; /* Default Border Color */
+            border-top: 5px solid #ccc;
         }
         .promo-card:active { transform: scale(0.98); }
         .card-img-top { height: 150px; object-fit: cover; background: #f0f0f0; }
-        .date-badge {
-            font-size: 0.75rem; background: #F3F4F6; color: #555;
-            padding: 4px 10px; border-radius: 20px; display: inline-block;
-            margin-bottom: 8px; font-weight: 600;
-        }
-
-        /* FAB & Modal */
+        .date-badge { font-size: 0.75rem; background: #F3F4F6; color: #555; padding: 4px 10px; border-radius: 20px; display: inline-block; margin-bottom: 8px; font-weight: 600; }
+        
         .fab-btn { position: fixed; bottom: 25px; right: 25px; width: 56px; height: 56px; border-radius: 50%; background: #4F46E5; color: white; border: none; box-shadow: 0 4px 15px rgba(79, 70, 229, 0.4); z-index: 1050; }
         .zoomed-in { transform: scale(2); cursor: zoom-out !important; transition: transform 0.3s; }
         #fullImageModal .modal-content { background: black; border: none; height: 100%; }
@@ -70,13 +59,18 @@
     
     <div id="bannerCarousel" class="carousel slide banner-container" data-bs-ride="carousel" style="display:none;">
         <div class="carousel-inner" id="banner-inner"></div>
-        <button class="carousel-control-prev" type="button" data-bs-target="#bannerCarousel" data-bs-slide="prev"><span class="carousel-control-prev-icon"></span></button>
-        <button class="carousel-control-next" type="button" data-bs-target="#bannerCarousel" data-bs-slide="next"><span class="carousel-control-next-icon"></span></button>
+        <button class="carousel-control-prev" type="button" data-bs-target="#bannerCarousel" data-bs-slide="prev" style="width: 30px; opacity: 0.5;"><span class="carousel-control-prev-icon bg-dark rounded"></span></button>
+        <button class="carousel-control-next" type="button" data-bs-target="#bannerCarousel" data-bs-slide="next" style="width: 30px; opacity: 0.5;"><span class="carousel-control-next-icon bg-dark rounded"></span></button>
     </div>
 
-    <div class="fw-bold mb-3 d-flex align-items-center"><i class="bi bi-grid-fill me-2 text-primary"></i> รายการโปรโมชั่น</div>
-    <div id="promo-feed" class="row g-3">
+    <div class="fw-bold mb-3 d-flex align-items-center"><i class="bi bi-fire me-2 text-danger"></i> กำลังใช้งาน</div>
+    <div id="active-feed" class="row g-3">
         <div class="col-12 text-center py-5 text-muted">กำลังโหลด...</div>
+    </div>
+
+    <div class="fw-bold mb-3 mt-4 d-flex align-items-center text-secondary"><i class="bi bi-hourglass-split me-2"></i> เร็วๆ นี้</div>
+    <div id="upcoming-feed" class="row g-3 pb-4">
+        <div class="col-12 text-center py-3 text-muted small opacity-50">ไม่มีโปรโมชั่นล่วงหน้า</div>
     </div>
 
 </div>
@@ -101,8 +95,8 @@
 
 <div class="modal fade" id="fullImageModal" tabindex="-1">
     <div class="modal-dialog modal-fullscreen">
-        <div class="modal-content position-relative">
-            <button type="button" class="btn btn-dark position-absolute top-0 end-0 m-4 rounded-circle z-3" data-bs-dismiss="modal"><i class="bi bi-x-lg"></i></button>
+        <div class="modal-content position-relative" style="background: black;">
+            <button type="button" class="btn btn-dark position-absolute top-0 end-0 m-4 rounded-circle z-3 shadow" data-bs-dismiss="modal"><i class="bi bi-x-lg"></i></button>
             <div class="modal-body p-0 d-flex align-items-center justify-content-center h-100 overflow-hidden"><img id="fullImg" src="" onclick="this.classList.toggle('zoomed-in')"></div>
         </div>
     </div>
@@ -111,25 +105,28 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
     let globalPromotions = [];
+    let globalAnnouncements = [];
 
     document.addEventListener('DOMContentLoaded', () => {
         loadBanners();
         loadPromotions();
     });
 
-    // 1. Load Banners (Announcements)
     async function loadBanners() {
-        const res = await fetch('/api/announcement'); // ดึงประกาศที่ยังไม่หมดอายุ
+        const res = await fetch('/api/announcement');
         const data = await res.json();
+        globalAnnouncements = data;
         
         if (data.length > 0) {
             const inner = document.getElementById('banner-inner');
             inner.innerHTML = data.map((b, i) => `
                 <div class="carousel-item ${i === 0 ? 'active' : ''}">
-                    <img src="${b.imageUrl || 'logo.png'}" class="carousel-img">
-                    <div class="banner-text">
-                        <div class="fw-bold text-truncate">${b.title}</div>
-                        <small class="d-block text-truncate opacity-75">${b.description || ''}</small>
+                    <div class="carousel-item-content" onclick="viewAnnDetail('${b._id}')">
+                        <img src="${b.imageUrl || 'logo.png'}" class="banner-img">
+                        <div class="banner-info">
+                            <div class="fw-bold text-dark text-truncate mb-1">${b.title}</div>
+                            <small class="text-secondary text-truncate opacity-75" style="-webkit-line-clamp: 2; display: -webkit-box; -webkit-box-orient: vertical; white-space: normal;">${b.description || ''}</small>
+                        </div>
                     </div>
                 </div>
             `).join('');
@@ -137,32 +134,39 @@
         }
     }
 
-    // 2. Load Promotions
     async function loadPromotions() {
         const res = await fetch('/api/promotions');
         const data = await res.json();
         globalPromotions = data;
 
-        const feed = document.getElementById('promo-feed');
-        if (data.length === 0) {
-            feed.innerHTML = '<div class="col-12 text-center py-5 text-muted">ไม่มีโปรโมชั่นช่วงนี้</div>';
-            return;
-        }
+        const activeFeed = document.getElementById('active-feed');
+        const upcomingFeed = document.getElementById('upcoming-feed');
+        
+        const now = new Date().getTime();
+        const active = [];
+        const upcoming = [];
 
-        feed.innerHTML = data.map(p => `
+        data.forEach(p => {
+            const start = new Date(p.start).getTime();
+            if (now >= start) active.push(p);
+            else upcoming.push(p);
+        });
+
+        const renderCard = (p) => `
             <div class="col-12 col-md-6 col-lg-4">
-                <div class="promo-card" onclick="viewDetail('${p._id}')" style="border-top-color: ${p.color || '#4F46E5'}">
+                <div class="promo-card" onclick="viewPromoDetail('${p._id}')" style="border-top-color: ${p.color || '#4F46E5'}">
                     <img src="${p.imageUrl || 'logo.png'}" class="card-img-top">
                     <div class="card-body p-3">
-                        <div class="date-badge">
-                            <i class="bi bi-clock me-1"></i> ${formatDateRange(p.start, p.end)}
-                        </div>
+                        <div class="date-badge"><i class="bi bi-clock me-1"></i> ${formatDateRange(p.start, p.end)}</div>
                         <div class="fw-bold text-dark text-truncate mb-1" style="font-size:1.05rem;">${p.title}</div>
                         <div class="text-secondary small text-truncate">${p.description || '-'}</div>
                     </div>
                 </div>
             </div>
-        `).join('');
+        `;
+
+        activeFeed.innerHTML = active.length ? active.map(renderCard).join('') : '<div class="col-12 text-center py-5 text-muted">ไม่มีโปรโมชั่นปัจจุบัน</div>';
+        upcomingFeed.innerHTML = upcoming.length ? upcoming.map(renderCard).join('') : '<div class="col-12 text-center py-3 text-muted small opacity-50">ไม่มีโปรโมชั่นล่วงหน้า</div>';
     }
 
     function formatDateRange(start, end) {
@@ -171,18 +175,22 @@
         return `${s.getDate()} ${s.toLocaleString('default', { month: 'short' })} - ${e.getDate()} ${e.toLocaleString('default', { month: 'short' })}`;
     }
 
-    function viewDetail(id) {
+    function viewPromoDetail(id) {
         const p = globalPromotions.find(x => x._id === id);
-        if(!p) return;
-        document.getElementById('vTitle').innerText = p.title;
-        document.getElementById('vDesc').innerText = p.description || '';
-        document.getElementById('vImg').src = p.imageUrl || 'logo.png';
-        document.getElementById('fullImg').src = p.imageUrl || 'logo.png';
-        
-        const s = new Date(p.start).toLocaleDateString('th-TH', {day:'numeric', month:'long', year:'numeric'});
-        const e = new Date(p.end).toLocaleDateString('th-TH', {day:'numeric', month:'long', year:'numeric'});
-        document.getElementById('vDate').innerText = `${s} - ${e}`;
-        
+        showModal(p.title, p.description, p.imageUrl, p.start, p.end);
+    }
+
+    function viewAnnDetail(id) {
+        const a = globalAnnouncements.find(x => x._id === id);
+        showModal(a.title, a.description, a.imageUrl, a.startDate, a.endDate);
+    }
+
+    function showModal(title, desc, img, start, end) {
+        document.getElementById('vTitle').innerText = title;
+        document.getElementById('vDesc').innerText = desc || '';
+        document.getElementById('vImg').src = img || 'logo.png';
+        document.getElementById('fullImg').src = img || 'logo.png';
+        document.getElementById('vDate').innerText = formatDateRange(start, end);
         new bootstrap.Modal(document.getElementById('viewModal')).show();
     }
 

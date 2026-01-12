@@ -17,7 +17,7 @@
         .hidden { display: none !important; }
         .card-custom { background: white; border-radius: 16px; border: none; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 1rem; }
         .img-thumb { width: 50px; height: 50px; object-fit: cover; border-radius: 8px; background: #eee; }
-        .status-badge { font-size: 0.75rem; padding: 4px 8px; border-radius: 20px; }
+        .form-check-input:checked { background-color: var(--primary-color); border-color: var(--primary-color); }
     </style>
 </head>
 <body>
@@ -57,7 +57,7 @@
             <div class="tab-pane fade show active" id="tab-promos">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h6 class="text-muted small fw-bold">รายการโปรโมชั่น</h6>
-                    <button class="btn btn-sm btn-success rounded-pill" data-bs-toggle="modal" data-bs-target="#createPromoModal"><i class="bi bi-plus-lg"></i> เพิ่มโปรฯ</button>
+                    <button class="btn btn-sm btn-success rounded-pill" onclick="openCreatePromo()"><i class="bi bi-plus-lg"></i> เพิ่มโปรฯ</button>
                 </div>
                 <div id="promo-list">กำลังโหลด...</div>
             </div>
@@ -73,20 +73,20 @@
     </div>
 </div>
 
-<div class="modal fade" id="createPromoModal" tabindex="-1">
+<div class="modal fade" id="promoModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content rounded-4 border-0">
-            <div class="modal-header border-0"><h5 class="modal-title fw-bold">สร้างโปรโมชั่น</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-header border-0"><h5 class="modal-title fw-bold" id="promoModalTitle">สร้างโปรโมชั่น</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
             <div class="modal-body">
-                <form id="createPromoForm">
-                    <div class="mb-3"><label class="small text-muted">หัวข้อ</label><input type="text" class="form-control" name="title" required></div>
-                    <div class="mb-3"><label class="small text-muted">รายละเอียด</label><textarea class="form-control" name="description" rows="2"></textarea></div>
+                <form id="promoForm">
+                    <input type="hidden" id="promoId"> <div class="mb-3"><label class="small text-muted">หัวข้อ</label><input type="text" class="form-control" id="pTitle" required></div>
+                    <div class="mb-3"><label class="small text-muted">รายละเอียด</label><textarea class="form-control" id="pDesc" rows="2"></textarea></div>
                     <div class="row mb-3">
-                        <div class="col"><label class="small text-muted">เริ่ม</label><input type="date" class="form-control" name="start" required></div>
-                        <div class="col"><label class="small text-muted">จบ</label><input type="date" class="form-control" name="end" required></div>
+                        <div class="col"><label class="small text-muted">เริ่ม</label><input type="date" class="form-control" id="pStart" required></div>
+                        <div class="col"><label class="small text-muted">จบ</label><input type="date" class="form-control" id="pEnd" required></div>
                     </div>
-                    <div class="mb-3"><label class="small text-muted">สีธีม (แยกตามประเภท)</label><input type="color" class="form-control form-control-color w-100" name="color" value="#4F46E5"></div>
-                    <div class="mb-3"><label class="small text-muted">รูปภาพ</label><input type="file" class="form-control" name="image" accept="image/*"></div>
+                    <div class="mb-3"><label class="small text-muted">สีธีม</label><input type="color" class="form-control form-control-color w-100" id="pColor" value="#4F46E5"></div>
+                    <div class="mb-3"><label class="small text-muted">รูปภาพ</label><input type="file" class="form-control" id="pImage" accept="image/*"></div>
                     <button type="submit" class="btn btn-primary w-100 rounded-pill">บันทึก</button>
                 </form>
             </div>
@@ -100,14 +100,13 @@
             <div class="modal-header border-0"><h5 class="modal-title fw-bold" id="annModalTitle">เพิ่มประกาศใหม่</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
             <div class="modal-body">
                 <form id="annForm">
-                    <input type="hidden" id="annId">
-                    <div class="mb-3"><label class="small text-muted">หัวข้อประกาศ</label><input type="text" class="form-control" id="formAnnTitle" required></div>
-                    <div class="mb-3"><label class="small text-muted">รายละเอียด</label><textarea class="form-control" id="formAnnDesc" rows="2"></textarea></div>
+                    <input type="hidden" id="annId"> <div class="mb-3"><label class="small text-muted">หัวข้อประกาศ</label><input type="text" class="form-control" id="aTitle" required></div>
+                    <div class="mb-3"><label class="small text-muted">รายละเอียด</label><textarea class="form-control" id="aDesc" rows="2"></textarea></div>
                     <div class="row mb-3">
-                        <div class="col"><label class="small text-muted">แสดงตั้งแต่วันที่</label><input type="date" class="form-control" id="formAnnStart" required></div>
-                        <div class="col"><label class="small text-muted">ถึงวันที่</label><input type="date" class="form-control" id="formAnnEnd" required></div>
+                        <div class="col"><label class="small text-muted">แสดงตั้งแต่วันที่</label><input type="date" class="form-control" id="aStart" required></div>
+                        <div class="col"><label class="small text-muted">ถึงวันที่</label><input type="date" class="form-control" id="aEnd" required></div>
                     </div>
-                    <div class="mb-3"><label class="small text-muted">รูปภาพ Banner</label><input type="file" class="form-control" id="formAnnImage" accept="image/*"></div>
+                    <div class="mb-3"><label class="small text-muted">รูปภาพ Banner</label><input type="file" class="form-control" id="aImage" accept="image/*"></div>
                     <button type="submit" class="btn btn-danger w-100 rounded-pill">บันทึกประกาศ</button>
                 </form>
             </div>
@@ -118,6 +117,8 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
     const API_URL = '/api';
+    let allPromos = [];
+    let allAnns = [];
     
     // Auth & Init
     document.addEventListener('DOMContentLoaded', () => { if(localStorage.getItem('adminToken')) showDashboard(); });
@@ -142,54 +143,93 @@
         loadPromotions();
         loadAnnouncements();
     }
-
     function logout() { localStorage.removeItem('adminToken'); location.reload(); }
 
     // --- PROMOTIONS ---
     async function loadPromotions() {
         const res = await fetch(`${API_URL}/admin/promotions`, { headers: {'Authorization': `Bearer ${localStorage.getItem('adminToken')}`} });
-        const data = await res.json();
-        const html = data.map(p => `
+        allPromos = await res.json();
+        const html = allPromos.map(p => `
             <div class="card-custom p-3 d-flex align-items-center">
                 <img src="${p.imageUrl || 'logo.png'}" class="img-thumb me-3">
                 <div class="flex-grow-1">
                     <div class="fw-bold text-truncate" style="color:${p.color || '#000'}">${p.title}</div>
                     <small class="text-muted">${new Date(p.start).toLocaleDateString('th-TH')} - ${new Date(p.end).toLocaleDateString('th-TH')}</small>
                 </div>
-                <button class="btn btn-sm btn-outline-danger ms-2" onclick="deleteItem('promotions', '${p._id}')"><i class="bi bi-trash"></i></button>
+                <div class="d-flex gap-1">
+                    <button class="btn btn-sm btn-light border" onclick="openEditPromo('${p._id}')"><i class="bi bi-pencil"></i></button>
+                    <button class="btn btn-sm btn-outline-danger" onclick="deleteItem('promotions', '${p._id}')"><i class="bi bi-trash"></i></button>
+                </div>
             </div>
         `).join('');
         document.getElementById('promo-list').innerHTML = html || '<div class="text-center text-muted py-4">ไม่มีข้อมูล</div>';
     }
 
-    document.getElementById('createPromoForm').addEventListener('submit', async (e) => {
+    function openCreatePromo() {
+        document.getElementById('promoForm').reset();
+        document.getElementById('promoId').value = '';
+        document.getElementById('promoModalTitle').innerText = 'สร้างโปรโมชั่น';
+        new bootstrap.Modal(document.getElementById('promoModal')).show();
+    }
+
+    function openEditPromo(id) {
+        const p = allPromos.find(x => x._id === id);
+        if(!p) return;
+        document.getElementById('promoId').value = p._id;
+        document.getElementById('pTitle').value = p.title;
+        document.getElementById('pDesc').value = p.description || '';
+        document.getElementById('pStart').value = p.start.split('T')[0];
+        document.getElementById('pEnd').value = p.end.split('T')[0];
+        document.getElementById('pColor').value = p.color || '#4F46E5';
+        document.getElementById('promoModalTitle').innerText = 'แก้ไขโปรโมชั่น';
+        new bootstrap.Modal(document.getElementById('promoModal')).show();
+    }
+
+    document.getElementById('promoForm').addEventListener('submit', async (e) => {
         e.preventDefault();
-        await fetch(`${API_URL}/admin/promotions`, {
-            method: 'POST',
+        const id = document.getElementById('promoId').value;
+        const formData = new FormData();
+        formData.append('title', document.getElementById('pTitle').value);
+        formData.append('description', document.getElementById('pDesc').value);
+        formData.append('start', document.getElementById('pStart').value);
+        formData.append('end', document.getElementById('pEnd').value);
+        formData.append('color', document.getElementById('pColor').value);
+        const file = document.getElementById('pImage').files[0];
+        if(file) formData.append('image', file);
+
+        const url = id ? `${API_URL}/admin/promotions/${id}/edit` : `${API_URL}/admin/promotions`;
+        const method = id ? 'PUT' : 'POST';
+
+        await fetch(url, {
+            method: method,
             headers: {'Authorization': `Bearer ${localStorage.getItem('adminToken')}`},
-            body: new FormData(e.target)
+            body: formData
         });
-        bootstrap.Modal.getInstance(document.getElementById('createPromoModal')).hide();
-        e.target.reset();
+        bootstrap.Modal.getInstance(document.getElementById('promoModal')).hide();
         loadPromotions();
     });
 
     // --- ANNOUNCEMENTS ---
     async function loadAnnouncements() {
         const res = await fetch(`${API_URL}/admin/announcements`, { headers: {'Authorization': `Bearer ${localStorage.getItem('adminToken')}`} });
-        const data = await res.json();
-        const html = data.map(a => `
+        allAnns = await res.json();
+        const html = allAnns.map(a => `
             <div class="card-custom p-3">
-                <div class="d-flex align-items-start">
+                <div class="d-flex align-items-center">
                     <img src="${a.imageUrl || 'logo.png'}" class="img-thumb me-3" style="width: 80px; height: 50px;">
                     <div class="flex-grow-1">
                         <div class="fw-bold">${a.title}</div>
-                        <small class="text-muted d-block text-truncate">${a.description || '-'}</small>
                         <small class="text-danger badge bg-danger bg-opacity-10 mt-1">
-                            <i class="bi bi-calendar"></i> แสดง: ${new Date(a.startDate).toLocaleDateString('th-TH')} - ${new Date(a.endDate).toLocaleDateString('th-TH')}
+                            ${new Date(a.startDate).toLocaleDateString('th-TH')} - ${new Date(a.endDate).toLocaleDateString('th-TH')}
                         </small>
                     </div>
-                    <button class="btn btn-sm btn-light text-danger ms-2" onclick="deleteItem('announcements', '${a._id}')"><i class="bi bi-trash"></i></button>
+                    <div class="form-check form-switch me-3">
+                        <input class="form-check-input" type="checkbox" ${a.isActive ? 'checked' : ''} onchange="toggleAnn('${a._id}', this.checked)">
+                    </div>
+                    <div class="d-flex gap-1">
+                        <button class="btn btn-sm btn-light border" onclick="openEditAnn('${a._id}')"><i class="bi bi-pencil"></i></button>
+                        <button class="btn btn-sm btn-light text-danger" onclick="deleteItem('announcements', '${a._id}')"><i class="bi bi-trash"></i></button>
+                    </div>
                 </div>
             </div>
         `).join('');
@@ -199,22 +239,50 @@
     function openCreateAnn() {
         document.getElementById('annForm').reset();
         document.getElementById('annId').value = '';
+        document.getElementById('annModalTitle').innerText = 'เพิ่มประกาศใหม่';
         new bootstrap.Modal(document.getElementById('annModal')).show();
+    }
+
+    function openEditAnn(id) {
+        const a = allAnns.find(x => x._id === id);
+        if(!a) return;
+        document.getElementById('annId').value = a._id;
+        document.getElementById('aTitle').value = a.title;
+        document.getElementById('aDesc').value = a.description || '';
+        document.getElementById('aStart').value = a.startDate.split('T')[0];
+        document.getElementById('aEnd').value = a.endDate.split('T')[0];
+        document.getElementById('annModalTitle').innerText = 'แก้ไขประกาศ';
+        new bootstrap.Modal(document.getElementById('annModal')).show();
+    }
+
+    async function toggleAnn(id, isActive) {
+        await fetch(`${API_URL}/admin/announcements/${id}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
+            },
+            body: JSON.stringify({ isActive })
+        });
+        // ไม่ต้อง reload เพื่อความลื่นไหล
     }
 
     document.getElementById('annForm').addEventListener('submit', async (e) => {
         e.preventDefault();
+        const id = document.getElementById('annId').value;
         const formData = new FormData();
-        formData.append('title', document.getElementById('formAnnTitle').value);
-        formData.append('description', document.getElementById('formAnnDesc').value);
-        formData.append('startDate', document.getElementById('formAnnStart').value);
-        formData.append('endDate', document.getElementById('formAnnEnd').value);
-        
-        const file = document.getElementById('formAnnImage').files[0];
+        formData.append('title', document.getElementById('aTitle').value);
+        formData.append('description', document.getElementById('aDesc').value);
+        formData.append('startDate', document.getElementById('aStart').value);
+        formData.append('endDate', document.getElementById('aEnd').value);
+        const file = document.getElementById('aImage').files[0];
         if(file) formData.append('image', file);
 
-        await fetch(`${API_URL}/admin/announcements`, {
-            method: 'POST',
+        const url = id ? `${API_URL}/admin/announcements/${id}` : `${API_URL}/admin/announcements`;
+        const method = id ? 'PUT' : 'POST';
+
+        await fetch(url, {
+            method: method,
             headers: {'Authorization': `Bearer ${localStorage.getItem('adminToken')}`},
             body: formData
         });
