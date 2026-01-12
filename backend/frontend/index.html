@@ -61,9 +61,16 @@
         
         .fab-btn { position: fixed; bottom: 25px; right: 25px; width: 56px; height: 56px; border-radius: 50%; background-color: var(--primary-color); color: white; box-shadow: 0 4px 15px rgba(79, 70, 229, 0.4); display: flex; align-items: center; justify-content: center; font-size: 24px; border: none; z-index: 1050; }
         
-        .zoomed-in { transform: scale(2); cursor: zoom-out !important; }
+        /* Zoomed Image Styles */
+        .zoomed-in { transform: scale(2.5); cursor: zoom-out !important; }
         #fullImageModal .modal-content { background: black; border: none; height: 100%; }
-        #fullImg { max-height: 90vh; width: 100%; object-fit: contain; cursor: zoom-in; transition: transform 0.3s; }
+        #fullImg { 
+            max-height: 100vh; 
+            max-width: 100vw; 
+            object-fit: contain; 
+            cursor: zoom-in; 
+            transition: transform 0.3s ease; 
+        }
     </style>
 </head>
 <body>
@@ -154,10 +161,19 @@
 </div>
 
 <div class="modal fade" id="fullImageModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content position-relative">
-            <button type="button" class="btn btn-dark position-absolute top-0 end-0 m-4 rounded-circle z-3" style="width: 40px; height: 40px;" data-bs-dismiss="modal"><i class="bi bi-x-lg"></i></button>
-            <div class="modal-body p-0 d-flex align-items-center justify-content-center h-100 overflow-hidden"><img id="fullImg" src="" onclick="this.classList.toggle('zoomed-in')"></div>
+    <div class="modal-dialog modal-fullscreen"> <div class="modal-content position-relative" style="background: black;">
+            <button type="button" class="btn btn-dark position-absolute top-0 end-0 m-4 rounded-circle z-3 shadow" 
+                    style="width: 45px; height: 45px; opacity: 0.8;" data-bs-dismiss="modal">
+                <i class="bi bi-x-lg"></i>
+            </button>
+            
+            <div class="modal-body p-0 d-flex align-items-center justify-content-center h-100 overflow-hidden">
+                <img id="fullImg" src="" onclick="this.classList.toggle('zoomed-in')">
+            </div>
+            
+            <div class="position-absolute bottom-0 w-100 text-center text-white pb-4 pointer-events-none">
+                <small class="bg-black bg-opacity-50 px-3 py-1 rounded-pill">แตะที่รูปเพื่อซูม</small>
+            </div>
         </div>
     </div>
 </div>
