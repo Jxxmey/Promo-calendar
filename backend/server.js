@@ -1,4 +1,4 @@
-const path = require('path'); // ✅ ต้องมีบรรทัดนี้ ไม่งั้น path not defined
+const path = require('path');
 require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
@@ -16,16 +16,16 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
-// ✅ 1. แก้ไข Helmet (เปิดอนุญาตให้ใช้ Script จากภายนอกได้)
+// ✅ 1. แก้ไข Helmet (อนุญาตให้โหลด Script/CSS จากภายนอกได้)
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "cdn.jsdelivr.net"], // ยอมรับ Bootstrap/FullCalendar
-      styleSrc: ["'self'", "'unsafe-inline'", "cdn.jsdelivr.net", "fonts.googleapis.com"], // ยอมรับ Font
-      imgSrc: ["'self'", "data:", "i.ibb.co"], // ยอมรับรูปจาก ImgBB
-      fontSrc: ["'self'", "fonts.gstatic.com", "cdn.jsdelivr.net"], // ยอมรับ Font Icon
-      connectSrc: ["'self'", "cdn.jsdelivr.net"], // ยอมรับการเชื่อมต่ออื่นๆ
+      scriptSrc: ["'self'", "'unsafe-inline'", "cdn.jsdelivr.net"], // อนุญาต CDN
+      styleSrc: ["'self'", "'unsafe-inline'", "cdn.jsdelivr.net", "fonts.googleapis.com"], // อนุญาต Font
+      imgSrc: ["'self'", "data:", "i.ibb.co"], // อนุญาตรูปจาก ImgBB
+      fontSrc: ["'self'", "fonts.gstatic.com", "cdn.jsdelivr.net"],
+      connectSrc: ["'self'", "cdn.jsdelivr.net"], 
     },
   },
 }));
@@ -38,13 +38,21 @@ mongoose.connect(process.env.MONGO_URI || 'mongodb://mongo:27017/promo_db')
   .then(() => console.log('✅ MongoDB Connected'))
   .catch(err => console.error('❌ MongoDB Error:', err));
 
-// --- Redis Connection (แบบปลอดภัย ไม่ให้แอปพังถ้าไม่มี Redis) ---
+// --- Redis Connection (แบบปลอดภัย) ---
+// ✅ 3. แก้ไข Redis: ถ้าต่อไม่ได้ (บน Render) ให้ข้ามไป ไม่ต้องให้แอปพัง
 const redisClient = redis.createClient({ 
-  url: process.env.REDIS_URL || 'redis://redis:6379' 
+  url: process.env.REDIS_URL || 'redis://redis:6379',
+  socket: {
+    reconnectStrategy: false // ไม่ต้องพยายามต่อใหม่ถ้าระบบไม่มี Redis
+  }
 });
-// ถ้าต่อ Redis ไม่ได้ (เช่นบน Render Free) ให้แค่แจ้งเตือน แต่แอปทำงานต่อได้
-redisClient.on('error', (err) => console.log('⚠️ Redis Client Error', err));
-redisClient.connect().catch(err => console.log('⚠️ Redis Connect Error (Cache disabled):', err.message));
+
+// ดักจับ Error ไม่ให้แอป Crash
+redisClient.on('error', (err) => console.log('⚠️ Redis Error (Cache disabled)'));
+
+// พยายามเชื่อมต่อ
+redisClient.connect().catch(err => console.log('⚠️ Redis Connect Failed:', err.message));
+
 
 // --- Multer Setup ---
 const upload = multer({ storage: multer.memoryStorage() });
@@ -82,14 +90,12 @@ const authenticateAdmin = (req, res, next) => {
 app.get('/api/promotions', async (req, res) => {
   try {
     const cacheKey = 'promotions:approved';
-    let cachedData = null;
     
-    // เช็คว่า Redis ต่อติดไหมค่อยดึง Cache
+    // ✅ เช็คก่อนว่า Redis พร้อมไหม ค่อยดึง Cache
     if (redisClient.isOpen) {
-       cachedData = await redisClient.get(cacheKey);
+       const cachedData = await redisClient.get(cacheKey);
+       if (cachedData) return res.json(JSON.parse(cachedData));
     }
-
-    if (cachedData) return res.json(JSON.parse(cachedData));
 
     const today = new Date();
     today.setHours(0,0,0,0);
@@ -99,7 +105,7 @@ app.get('/api/promotions', async (req, res) => {
       end: { $gte: today }
     });
 
-    // ถ้า Redis ต่อติดค่อยเก็บ Cache
+    // ✅ เช็คก่อนว่า Redis พร้อมไหม ค่อยเก็บ Cache
     if (redisClient.isOpen) {
       await redisClient.setEx(cacheKey, 300, JSON.stringify(promotions));
     }
