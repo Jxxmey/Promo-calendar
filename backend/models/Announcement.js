@@ -3,9 +3,9 @@ const mongoose = require('mongoose');
 const AnnouncementSchema = new mongoose.Schema({
   title: { type: String, required: true },
   description: String,
-  imageUrl: String,
-  startDate: { type: Date, required: true }, // วันเริ่มแสดง
-  endDate: { type: Date, required: true },   // วันจบ (กำหนดว่าโชว์กี่วัน)
+  imageUrls: [String], // ✅ เปลี่ยนจาก imageUrl เป็น imageUrls (Array)
+  startDate: { type: Date, required: true },
+  endDate: { type: Date, required: true },
   isActive: { type: Boolean, default: true },
   createdAt: { type: Date, default: Date.now }
 });
